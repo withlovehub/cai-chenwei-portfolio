@@ -2235,6 +2235,58 @@ section:target .section-reveal {
   background: var(--repo-accent, var(--acid));
 }
 
+/* Readability pass: keep the signal-system density without sacrificing legibility. */
+.desktop-nav a {
+  font-size: 13px;
+  letter-spacing: 0.13em;
+}
+
+.desktop-nav a span {
+  margin-right: 9px;
+  font-size: 9px;
+}
+
+.header-contact {
+  padding: 12px 17px;
+  font-size: 13px;
+}
+
+.title-line-offset {
+  color: var(--paper-bright);
+  -webkit-text-stroke: 0.6px rgba(242, 244, 242, 0.92);
+  text-shadow: 0 0 22px rgba(103, 231, 255, 0.08);
+}
+
+.hero-system-readout { font-size: 9px; }
+.hero-system-readout strong { font-size: 10px; }
+.hero-system-index { font-size: 9px; }
+.hero-system-index small { font-size: 8px; }
+.hero-tool-rail { font-size: 8px; }
+
+.section-eyebrow {
+  font-size: 10.5px;
+}
+
+.detail-row > span,
+.metric-scope,
+.experience-meta,
+.project-corner,
+.project-category,
+.project-index,
+.strength-body > span,
+.contact-status {
+  font-size: 10px;
+}
+
+.metric-label,
+.contact-meta {
+  font-size: 12px;
+}
+
+.strength-tags span {
+  font-size: 9px;
+}
+
 .rotating-stamp {
   border-radius: 0;
   border-color: rgba(8, 11, 13, 0.28);
