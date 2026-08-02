@@ -1,0 +1,12 @@
+.rb-tilted-card {
+  width: 100%;
+  height: 100%;
+  perspective: 1100px;
+}
+
+.rb-tilted-card__inner {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}

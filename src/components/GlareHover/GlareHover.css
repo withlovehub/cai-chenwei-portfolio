@@ -1,0 +1,23 @@
+.rb-glare-hover {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.rb-glare-hover::before {
+  content: '';
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  background: linear-gradient(var(--glare-angle), transparent 52%, var(--glare-color) 67%, transparent 79%);
+  background-size: var(--glare-size) var(--glare-size);
+  background-repeat: no-repeat;
+  background-position: -140% -140%;
+  pointer-events: none;
+  transition: background-position var(--glare-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rb-glare-hover:hover::before,
+.rb-glare-hover.is-pointer-active::before {
+  background-position: 130% 130%;
+}

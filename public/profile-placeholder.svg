@@ -1,0 +1,17 @@
+<svg width="1200" height="1600" viewBox="0 0 1200 1600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1600" fill="#171A18"/>
+  <g opacity="0.18" stroke="#F3F4EC">
+    <path d="M0 200H1200M0 400H1200M0 600H1200M0 800H1200M0 1000H1200M0 1200H1200M0 1400H1200"/>
+    <path d="M200 0V1600M400 0V1600M600 0V1600M800 0V1600M1000 0V1600"/>
+  </g>
+  <circle cx="600" cy="640" r="330" stroke="#C7FF45" stroke-width="2" opacity="0.7"/>
+  <circle cx="600" cy="640" r="240" stroke="#F3F4EC" stroke-width="2" opacity="0.18"/>
+  <path d="M421 640H779M600 461V819" stroke="#F3F4EC" stroke-width="2" opacity="0.35"/>
+  <text x="600" y="704" fill="#F3F4EC" font-family="Arial Narrow, sans-serif" font-size="210" font-weight="700" text-anchor="middle" letter-spacing="-12">CCW</text>
+  <rect x="76" y="76" width="1048" height="1448" stroke="#F3F4EC" opacity="0.24"/>
+  <g fill="#F3F4EC" opacity="0.58" font-family="Arial, sans-serif" font-size="18" letter-spacing="5">
+    <text x="90" y="125">PROFILE PLACEHOLDER / 2026</text>
+    <text x="90" y="1475">CAI CHENWEI · NANJING, CHINA</text>
+  </g>
+  <rect x="1030" y="1440" width="64" height="64" fill="#C7FF45"/>
+</svg>

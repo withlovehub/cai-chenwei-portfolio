@@ -1,0 +1,16 @@
+.rb-scroll-float {
+  overflow: hidden;
+}
+
+.rb-scroll-float__text,
+.rb-scroll-float__char {
+  display: inline-block;
+}
+
+.rb-scroll-float__text {
+  white-space: pre-wrap;
+}
+
+.rb-scroll-float__char {
+  will-change: transform, opacity;
+}

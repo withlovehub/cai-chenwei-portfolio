@@ -1,0 +1,8 @@
+.rb-magnet,
+.rb-magnet__inner {
+  display: inline-flex;
+}
+
+.rb-magnet__inner {
+  will-change: transform;
+}

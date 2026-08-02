@@ -1,0 +1,25 @@
+.rb-velocity {
+  position: relative;
+  overflow: hidden;
+}
+
+.rb-velocity-parallax {
+  overflow: hidden;
+}
+
+.rb-velocity-scroller {
+  width: max-content;
+  display: flex;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.rb-velocity-scroller > span {
+  flex: 0 0 auto;
+}
+
+.rb-velocity-scroller i {
+  margin: 0 0.28em;
+  color: var(--acid);
+  font-style: normal;
+}

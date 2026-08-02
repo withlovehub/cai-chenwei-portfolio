@@ -1,0 +1,115 @@
+.flowing-menu {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.flowing-menu__nav {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.flowing-menu__item {
+  position: relative;
+  flex: 1;
+  min-height: 110px;
+  overflow: hidden;
+  text-align: center;
+  border-top: 1px solid;
+}
+
+.flowing-menu__item:first-child {
+  border-top: 0;
+}
+
+.flowing-menu__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 18px 24px;
+  font-family: var(--display);
+  font-size: clamp(27px, 3.1vw, 52px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.flowing-menu__link:focus-visible {
+  z-index: 2;
+  outline: 2px solid var(--acid);
+  outline-offset: -5px;
+}
+
+.flowing-menu__marquee {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translate3d(0, 101%, 0);
+}
+
+.flowing-menu__marquee-clip {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.flowing-menu__marquee-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  height: 100%;
+  will-change: transform;
+}
+
+.flowing-menu__marquee-part {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.flowing-menu__marquee-part span {
+  padding: 0 1.2vw;
+  font-family: var(--display);
+  font-size: clamp(27px, 3.1vw, 52px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flowing-menu__image {
+  width: clamp(150px, 15vw, 235px);
+  height: clamp(62px, 7.5vh, 86px);
+  margin: 0 1.6vw;
+  border-radius: 999px;
+  background-position: 50% 50%;
+  background-size: cover;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 560px) {
+  .flowing-menu__item {
+    min-height: 88px;
+  }
+
+  .flowing-menu__link,
+  .flowing-menu__marquee-part span {
+    font-size: 24px;
+  }
+
+  .flowing-menu__image {
+    width: 120px;
+    height: 54px;
+  }
+}

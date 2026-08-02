@@ -1,0 +1,15 @@
+.rb-shiny-text {
+  display: inline-block;
+  color: var(--shine-base);
+  background: linear-gradient(110deg, var(--shine-base) 34%, var(--shine-color) 48%, var(--shine-base) 62%);
+  background-size: 240% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rb-shine var(--shine-speed) linear infinite;
+}
+
+@keyframes rb-shine {
+  from { background-position: 130% center; }
+  to { background-position: -130% center; }
+}

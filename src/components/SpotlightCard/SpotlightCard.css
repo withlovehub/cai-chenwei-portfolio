@@ -1,0 +1,23 @@
+.rb-spotlight-card {
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  --spotlight-color: rgba(103, 231, 255, 0.18);
+  isolation: isolate;
+}
+
+.rb-spotlight-card::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: radial-gradient(420px circle at var(--spotlight-x) var(--spotlight-y), var(--spotlight-color), transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms ease;
+}
+
+.rb-spotlight-card:hover::after,
+.rb-spotlight-card.is-pointer-active::after,
+.rb-spotlight-card:focus-within::after {
+  opacity: 1;
+}

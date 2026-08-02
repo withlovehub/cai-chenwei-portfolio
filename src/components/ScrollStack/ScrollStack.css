@@ -1,0 +1,16 @@
+.rb-scroll-stack {
+  position: relative;
+  display: grid;
+  padding-bottom: 0;
+}
+
+.rb-scroll-stack__card {
+  position: relative;
+  top: auto;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.rb-scroll-stack__card:not(:last-child) {
+  margin-bottom: 0;
+}

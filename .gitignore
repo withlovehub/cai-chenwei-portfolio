@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.npm-cache/
+.wrangler/
+.next/
+*.log
+.vite-dev.err
+*.tsbuildinfo
+.DS_Store
