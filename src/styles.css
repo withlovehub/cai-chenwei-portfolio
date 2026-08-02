@@ -2418,7 +2418,10 @@ section:target .section-reveal {
 }
 
 .contact h2 span {
+  color: var(--paper-bright);
+  -webkit-text-stroke: 0;
   -webkit-text-stroke-color: rgba(196, 229, 233, 0.62);
+  text-shadow: 0 0 22px rgba(103, 231, 255, 0.08);
 }
 
 @keyframes signalSweep {
