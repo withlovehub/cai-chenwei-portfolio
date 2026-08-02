@@ -2235,6 +2235,42 @@ section:target .section-reveal {
   background: var(--repo-accent, var(--acid));
 }
 
+/* Repository metadata needs to survive real-world screenshots and compression. */
+.github-repo-top {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.github-repo-slug {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.github-repo-tags span {
+  font-size: 8.5px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.github-repo-meta {
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+/* ScrollFloat should animate the title, not turn it into a hollow glyph. */
+.experience-float-title,
+.experience-float-title .rb-scroll-float__text,
+.experience-float-title .rb-scroll-float__char {
+  color: var(--ink);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.experience-list.rb-scroll-stack {
+  border: 0;
+  border-top: 2px solid var(--ink);
+  border-radius: 0;
+}
+
 /* Readability pass: keep the signal-system density without sacrificing legibility. */
 .desktop-nav a {
   font-size: 13px;
