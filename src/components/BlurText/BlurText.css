@@ -5,5 +5,4 @@
 
 .blur-text__segment {
   display: inline-block;
-  will-change: transform, filter, opacity;
 }

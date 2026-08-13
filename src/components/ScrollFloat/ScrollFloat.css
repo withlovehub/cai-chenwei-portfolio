@@ -10,7 +10,3 @@
 .rb-scroll-float__text {
   white-space: pre-wrap;
 }
-
-.rb-scroll-float__char {
-  will-change: transform, opacity;
-}

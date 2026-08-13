@@ -1,0 +1,151 @@
+.kinetic-iris {
+  position: absolute;
+  inset-block: 0;
+  z-index: 0;
+  width: min(43vw, 46rem);
+  min-width: 22rem;
+  overflow: hidden;
+  isolation: isolate;
+  opacity: 0;
+  contain: layout paint style;
+  touch-action: pan-y;
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1), filter 450ms ease;
+}
+
+.kinetic-iris::before {
+  position: absolute;
+  z-index: -1;
+  inset: 15% 5% 12%;
+  content: '';
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(179, 232, 233, 0.2), transparent 28%),
+    radial-gradient(circle at 46% 52%, rgba(214, 205, 187, 0.13), transparent 48%);
+  filter: blur(28px);
+  opacity: 0.76;
+}
+
+.kinetic-iris--left {
+  left: 0;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 64%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 64%, transparent 100%);
+}
+
+.kinetic-iris--right {
+  right: 0;
+  -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 64%, transparent 100%);
+  mask-image: linear-gradient(270deg, #000 0%, #000 64%, transparent 100%);
+}
+
+.kinetic-iris--full {
+  inset: 0;
+  width: 100%;
+  min-width: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.kinetic-iris[data-ready='true'] {
+  opacity: 0.96;
+}
+
+.kinetic-iris[data-interactive='true'] {
+  cursor: pointer;
+}
+
+.kinetic-iris[data-interactive='true']:focus-visible {
+  outline: 1px solid rgba(39, 87, 91, 0.62);
+  outline-offset: -0.75rem;
+}
+
+.kinetic-iris canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: saturate(0.84) contrast(1.025) brightness(1.035);
+  transition: filter 450ms ease;
+}
+
+.kinetic-iris[data-interactive='true']:hover canvas {
+  filter: saturate(0.95) contrast(1.045) brightness(1.045);
+}
+
+.kinetic-iris[data-fallback='true'] {
+  opacity: 0.72;
+  background:
+    radial-gradient(circle at 64% 48%, rgba(226, 242, 241, 0.82) 0 8%, transparent 8.5%),
+    repeating-radial-gradient(circle at 64% 48%, transparent 0 3.1rem, rgba(45, 60, 64, 0.16) 3.14rem 3.19rem, transparent 3.23rem 4.35rem),
+    radial-gradient(ellipse at 64% 48%, rgba(186, 226, 228, 0.28), transparent 45%);
+}
+
+.kinetic-iris--left[data-fallback='true'] {
+  background-position: -16% 50%;
+  transform: scaleX(-1);
+}
+
+.kinetic-iris--full[data-fallback='true'] {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(226, 242, 241, 0.82) 0 8%, transparent 8.5%),
+    repeating-radial-gradient(circle at 50% 48%, transparent 0 3.1rem, rgba(45, 60, 64, 0.16) 3.14rem 3.19rem, transparent 3.23rem 4.35rem),
+    radial-gradient(ellipse at 50% 48%, rgba(186, 226, 228, 0.28), transparent 54%);
+}
+
+@media (max-width: 900px) {
+  .kinetic-iris {
+    width: min(53vw, 34rem);
+    min-width: 18rem;
+    opacity: 0.78;
+  }
+
+  .kinetic-iris--left {
+    transform: translateX(-12%);
+  }
+
+  .kinetic-iris--right {
+    transform: translateX(12%);
+  }
+
+  .kinetic-iris--full {
+    width: 100%;
+    min-width: 0;
+    transform: none;
+    opacity: 0.86;
+  }
+
+}
+
+@media (max-width: 640px) {
+  .kinetic-iris {
+    width: 68vw;
+    min-width: 15rem;
+    opacity: 0.5;
+  }
+
+  .kinetic-iris--left {
+    transform: translateX(-38%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 48%, transparent 92%);
+    mask-image: linear-gradient(90deg, #000 0%, #000 48%, transparent 92%);
+  }
+
+  .kinetic-iris--right {
+    transform: translateX(38%);
+    -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 48%, transparent 92%);
+    mask-image: linear-gradient(270deg, #000 0%, #000 48%, transparent 92%);
+  }
+
+  .kinetic-iris--full {
+    width: 100%;
+    min-width: 0;
+    transform: none;
+    opacity: 0.58;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-iris,
+  .kinetic-iris canvas {
+    transition: none;
+  }
+}
