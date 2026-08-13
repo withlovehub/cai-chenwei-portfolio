@@ -1,15 +1,62 @@
 .rb-shiny-text {
-  display: inline-block;
+  position: relative;
+  display: inline-grid;
   color: var(--shine-base);
-  background: linear-gradient(110deg, var(--shine-base) 34%, var(--shine-color) 48%, var(--shine-base) 62%);
-  background-size: 240% 100%;
+}
+
+.rb-shiny-text__base,
+.rb-shiny-text__shine {
+  grid-area: 1 / 1;
+}
+
+.rb-shiny-text__shine {
+  color: transparent;
+  pointer-events: none;
+  background-image: linear-gradient(
+    var(--shine-angle),
+    transparent 0%,
+    transparent 47%,
+    var(--shine-color) 50%,
+    transparent 53%,
+    transparent 100%
+  );
+  background-size: 200% auto;
+  background-position: 150% center;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: rb-shine var(--shine-speed) linear infinite;
+  animation: rb-shiny-sweep calc(var(--shine-duration) + var(--shine-delay)) linear infinite;
+  animation-direction: var(--shine-direction);
 }
 
-@keyframes rb-shine {
-  from { background-position: 130% center; }
-  to { background-position: -130% center; }
+.rb-shiny-text.is-yoyo .rb-shiny-text__shine {
+  animation-direction: alternate;
+}
+
+.rb-shiny-text.is-pausable:hover .rb-shiny-text__shine {
+  animation-play-state: paused;
+}
+
+.rb-shiny-text.is-disabled .rb-shiny-text__shine {
+  display: none;
+}
+
+@keyframes rb-shiny-sweep {
+  0% {
+    background-position: 150% center;
+  }
+
+  70% {
+    background-position: -50% center;
+  }
+
+  100% {
+    background-position: -50% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-shiny-text__shine {
+    display: none;
+  }
 }

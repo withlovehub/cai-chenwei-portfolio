@@ -12,9 +12,15 @@ export default function ClickSpark({
   const canvasRef = useRef(null)
   const sparksRef = useRef([])
   const burstsRef = useRef(0)
+  const frameRef = useRef(0)
+  const canAnimateRef = useRef(false)
+  const pageVisibleRef = useRef(true)
+  const scheduleFrameRef = useRef(() => {})
 
   const easeOut = useCallback((value) => value * (2 - value), [])
   const handleClick = useCallback((event) => {
+    if (!canAnimateRef.current) return
+
     const now = performance.now()
     burstsRef.current += 1
     if (canvasRef.current) canvasRef.current.dataset.sparkBursts = String(burstsRef.current)
@@ -24,15 +30,24 @@ export default function ClickSpark({
       angle: (Math.PI * 2 * index) / sparkCount,
       start: now,
     })))
+    scheduleFrameRef.current()
   }, [sparkCount])
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
     const canvas = canvasRef.current
     const context = canvas?.getContext('2d')
     if (!canvas || !context) return undefined
 
-    let frame = 0
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let disposed = false
+    let hiddenAt = null
+
+    const stopFrame = () => {
+      if (!frameRef.current) return
+      cancelAnimationFrame(frameRef.current)
+      frameRef.current = 0
+    }
+
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = Math.floor(window.innerWidth * dpr)
@@ -43,6 +58,9 @@ export default function ClickSpark({
     }
 
     const draw = (time) => {
+      frameRef.current = 0
+      if (disposed || !canAnimateRef.current || !pageVisibleRef.current) return
+
       context.clearRect(0, 0, window.innerWidth, window.innerHeight)
       sparksRef.current = sparksRef.current.filter((spark) => {
         const progress = (time - spark.start) / duration
@@ -63,17 +81,73 @@ export default function ClickSpark({
       })
       canvas.dataset.activeSparks = String(sparksRef.current.length)
       context.globalAlpha = 1
-      frame = requestAnimationFrame(draw)
+      if (sparksRef.current.length > 0) {
+        frameRef.current = requestAnimationFrame(draw)
+      }
     }
 
+    const scheduleFrame = () => {
+      if (
+        disposed
+        || frameRef.current
+        || sparksRef.current.length === 0
+        || !canAnimateRef.current
+        || !pageVisibleRef.current
+      ) return
+
+      frameRef.current = requestAnimationFrame(draw)
+    }
+
+    const handleVisibilityChange = () => {
+      pageVisibleRef.current = !document.hidden
+      if (document.hidden) {
+        hiddenAt = performance.now()
+        stopFrame()
+        return
+      }
+
+      if (hiddenAt !== null) {
+        const hiddenDuration = performance.now() - hiddenAt
+        sparksRef.current.forEach((spark) => {
+          spark.start += hiddenDuration
+        })
+        hiddenAt = null
+      }
+      scheduleFrame()
+    }
+
+    const handleMotionPreferenceChange = (event) => {
+      canAnimateRef.current = !event.matches
+      if (!canAnimateRef.current) {
+        sparksRef.current = []
+        canvas.dataset.activeSparks = '0'
+        context.clearRect(0, 0, window.innerWidth, window.innerHeight)
+        stopFrame()
+        return
+      }
+      scheduleFrame()
+    }
+
+    canAnimateRef.current = !motionQuery.matches
+    pageVisibleRef.current = !document.hidden
+    scheduleFrameRef.current = scheduleFrame
     resize()
     window.addEventListener('resize', resize)
-    frame = requestAnimationFrame(draw)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    motionQuery.addEventListener('change', handleMotionPreferenceChange)
+    canvas.dataset.activeSparks = String(sparksRef.current.length)
+    scheduleFrame()
+
     return () => {
-      cancelAnimationFrame(frame)
+      disposed = true
+      stopFrame()
+      canAnimateRef.current = false
+      scheduleFrameRef.current = () => {}
       window.removeEventListener('resize', resize)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      motionQuery.removeEventListener('change', handleMotionPreferenceChange)
     }
-  }, [duration, easeOut, sparkColor, sparkCount, sparkRadius, sparkSize])
+  }, [duration, easeOut, sparkColor, sparkRadius, sparkSize])
 
   return (
     <div className="click-spark-root" onClick={handleClick}>

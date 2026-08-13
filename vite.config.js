@@ -22,6 +22,11 @@ export default defineConfig(async () => {
   const { cloudflare } = await import('@cloudflare/vite-plugin')
 
   return {
+    server: {
+      watch: {
+        ignored: ['**/public/assets/*.mp4'],
+      },
+    },
     plugins: [
       vinext(),
       sites(),

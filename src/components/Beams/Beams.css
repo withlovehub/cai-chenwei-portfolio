@@ -1,0 +1,32 @@
+.beams-root,
+.beams-container {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.beams-root {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.beams-static-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(116deg, transparent 14%, rgba(184, 213, 212, 0.16) 42%, transparent 68%),
+    radial-gradient(circle at 72% 28%, rgba(221, 240, 238, 0.22), transparent 42%);
+}
+
+.beams-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beams-root {
+    opacity: 0.72;
+  }
+}

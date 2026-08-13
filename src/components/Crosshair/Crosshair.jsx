@@ -9,7 +9,7 @@ const getMousePosition = (event, container) => {
   return { x: event.clientX - bounds.left, y: event.clientY - bounds.top }
 }
 
-const Crosshair = ({ color = 'white', containerRef = null }) => {
+const Crosshair = ({ color = 'white', containerRef = null, blendMode = 'screen' }) => {
   const lineHorizontalRef = useRef(null)
   const lineVerticalRef = useRef(null)
   const filterXRef = useRef(null)
@@ -33,6 +33,7 @@ const Crosshair = ({ color = 'white', containerRef = null }) => {
     const turbulence = { value: 0 }
     let raf = 0
     let hasStarted = false
+    let activeInteractive = null
 
     gsap.set([horizontal, vertical], { opacity: 0 })
 
@@ -59,7 +60,14 @@ const Crosshair = ({ color = 'white', containerRef = null }) => {
       rendered.y.previous = lerp(rendered.y.previous, rendered.y.current, rendered.y.amount)
       gsap.set(vertical, { x: rendered.x.previous })
       gsap.set(horizontal, { y: rendered.y.previous })
-      raf = requestAnimationFrame(render)
+
+      const settled = Math.abs(rendered.x.current - rendered.x.previous) < 0.08
+        && Math.abs(rendered.y.current - rendered.y.previous) < 0.08
+      raf = settled ? 0 : requestAnimationFrame(render)
+    }
+
+    const scheduleRender = () => {
+      if (!raf) raf = requestAnimationFrame(render)
     }
 
     const handleMouseMove = (event) => {
@@ -68,31 +76,40 @@ const Crosshair = ({ color = 'white', containerRef = null }) => {
         rendered.x.previous = rendered.x.current = mouseRef.current.x
         rendered.y.previous = rendered.y.current = mouseRef.current.y
         hasStarted = true
-        render()
       }
+      scheduleRender()
       gsap.to([horizontal, vertical], { duration: 0.45, ease: 'power3.out', opacity: 0.38 })
     }
 
     const hide = () => gsap.to([horizontal, vertical], { duration: 0.3, opacity: 0 })
     const enterLink = () => distortion.restart()
     const leaveLink = () => distortion.progress(1).pause()
-    const links = container ? container.querySelectorAll('a') : document.querySelectorAll('a')
+    const findInteractive = (node) => node instanceof Element
+      ? node.closest('a, button, [role="button"]')
+      : null
+    const handleInteractiveEnter = (event) => {
+      const nextInteractive = findInteractive(event.target)
+      if (!nextInteractive || nextInteractive === activeInteractive) return
+      activeInteractive = nextInteractive
+      enterLink()
+    }
+    const handleInteractiveLeave = (event) => {
+      if (!activeInteractive || activeInteractive.contains(event.relatedTarget)) return
+      activeInteractive = null
+      leaveLink()
+    }
 
     target.addEventListener('mousemove', handleMouseMove)
+    target.addEventListener('mouseover', handleInteractiveEnter)
+    target.addEventListener('mouseout', handleInteractiveLeave)
     if (container) container.addEventListener('mouseleave', hide)
-    links.forEach((link) => {
-      link.addEventListener('mouseenter', enterLink)
-      link.addEventListener('mouseleave', leaveLink)
-    })
 
     return () => {
       cancelAnimationFrame(raf)
       target.removeEventListener('mousemove', handleMouseMove)
+      target.removeEventListener('mouseover', handleInteractiveEnter)
+      target.removeEventListener('mouseout', handleInteractiveLeave)
       if (container) container.removeEventListener('mouseleave', hide)
-      links.forEach((link) => {
-        link.removeEventListener('mouseenter', enterLink)
-        link.removeEventListener('mouseleave', leaveLink)
-      })
       distortion.kill()
       gsap.killTweensOf([horizontal, vertical])
     }
@@ -108,8 +125,9 @@ const Crosshair = ({ color = 'white', containerRef = null }) => {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 8,
+        zIndex: 180,
         overflow: 'hidden',
+        mixBlendMode: blendMode,
       }}
     >
       <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>

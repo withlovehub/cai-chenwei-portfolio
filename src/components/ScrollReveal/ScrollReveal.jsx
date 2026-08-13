@@ -49,7 +49,7 @@ const ScrollReveal = ({
       const words = element.querySelectorAll('.scroll-reveal__word')
       gsap.fromTo(
         words,
-        { opacity: baseOpacity, willChange: 'opacity, filter' },
+        { opacity: baseOpacity },
         {
           ease: 'none',
           opacity: 1,
