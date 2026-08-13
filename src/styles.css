@@ -7909,3 +7909,14 @@ body.layered-app-active {
 .layered-portfolio[data-performance-tier='minimal']::after {
   display: none;
 }
+
+/* Balanced mode keeps the same composition without full-surface GPU
+   resampling. The illuminated static core still carries the visual focus. */
+.layered-portfolio[data-performance-tier='balanced'] .welcome-kinetic,
+.layered-portfolio[data-performance-tier='balanced'] .welcome-beams {
+  filter: none;
+}
+
+.layered-portfolio[data-performance-tier='balanced'] .rb-crosshair {
+  display: none;
+}

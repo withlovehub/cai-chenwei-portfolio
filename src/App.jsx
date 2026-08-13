@@ -1415,7 +1415,10 @@ function useLayerIntro(rootRef, selectors) {
 }
 
 function usePerformanceTier() {
-  const [tier, setTier] = useState('balanced')
+  // Start from the safest render path. Capability detection runs after
+  // hydration, so an optimistic default can freeze fresh/anonymous browsers
+  // before we have enough information to downgrade them.
+  const [tier, setTier] = useState('minimal')
 
   useEffect(() => {
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -1440,14 +1443,16 @@ function usePerformanceTier() {
         return
       }
 
-      // Browsers that hide deviceMemory (for example Firefox and privacy modes)
-      // stay balanced instead of being mistaken for a high-end device.
+      // Only opt into WebGL when the browser exposes enough positive evidence.
+      // Firefox, privacy modes and embedded browsers often hide deviceMemory;
+      // those clients keep the stable static treatment instead of gambling on
+      // a potentially weak or software-rendered GPU.
       if (memory >= 8 && cores >= 8 && pixelBudget <= 4_500_000) {
         setTier('enhanced')
         return
       }
 
-      setTier('balanced')
+      setTier(memory >= 6 && cores >= 6 && pixelBudget <= 5_500_000 ? 'balanced' : 'minimal')
     }
 
     detectTier()
@@ -1499,7 +1504,7 @@ function WelcomeLayer({ onEnter, performanceTier }) {
   useLayerIntro(rootRef, introSteps)
 
   useEffect(() => {
-    if (performanceTier === 'minimal') {
+    if (performanceTier !== 'enhanced') {
       setVisualMode('static')
       return undefined
     }
@@ -1893,7 +1898,7 @@ function LayeredApp() {
   return (
     <ClickSpark sparkColor="#67e7ff" sparkCount={10} sparkRadius={34} sparkSize={12}>
       <div className={`layered-portfolio view-${view}`} data-performance-tier={performanceTier}>
-        {performanceTier !== 'minimal' ? (
+        {performanceTier === 'enhanced' ? (
           <Suspense fallback={null}>
             <Crosshair
               color={usesLightCrosshair ? 'rgba(18, 25, 27, 0.72)' : 'rgba(103, 231, 255, 0.62)'}
