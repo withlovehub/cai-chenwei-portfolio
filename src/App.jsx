@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import {
   ArrowLeft,
@@ -1396,10 +1396,10 @@ function App() {
   )
 }
 
-function useLayerIntro(rootRef, selectors) {
+function useLayerIntro(rootRef, selectors, skipMotion = false) {
   useLayoutEffect(() => {
     const root = rootRef.current
-    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    if (!root || skipMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
 
     const context = gsap.context(() => {
       const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
@@ -1411,63 +1411,180 @@ function useLayerIntro(rootRef, selectors) {
     }, root)
 
     return () => context.revert()
-  }, [rootRef, selectors])
+  }, [rootRef, selectors, skipMotion])
+}
+
+// 运行时 FPS 采样：持续跟踪帧间隔，发现连续长帧（持续掉帧）时触发降级回调。
+// 每帧只读一次 performance.now()，成本可忽略；只在非 minimal 档启用，
+// 页面隐藏时暂停采样（后台标签页限流会制造大量假长帧），回到前台后重新热身。
+const PERF_DEGRADE_KEY = 'ccw-perf-degraded'      // sessionStorage：本次会话已降级
+const QUALITY_PREF_KEY = 'ccw-quality-preference' // localStorage：用户画质偏好（auto / high）
+
+function useRuntimePerfMonitor(enabled, onDegrade) {
+  useEffect(() => {
+    if (!enabled) return undefined
+
+    let raf = 0
+    let lastTime = window.performance.now()
+    let longFrameStreak = 0
+    let warmupFrames = 30 // 首屏与 WebGL shader 编译期存在正常长帧尖峰，先跳过前 30 帧再判定
+
+    const sample = (now) => {
+      raf = window.requestAnimationFrame(sample)
+      if (warmupFrames > 0) {
+        warmupFrames -= 1
+        lastTime = now
+        return
+      }
+
+      const delta = now - lastTime
+      lastTime = now
+      if (delta > 66) { // 单帧超过 66ms ≈ 持续低于 15fps，属于真实卡顿
+        longFrameStreak += 1
+        if (longFrameStreak >= 5) {
+          window.cancelAnimationFrame(raf)
+          raf = 0
+          onDegrade()
+        }
+      } else {
+        // 一帧正常就对连续计数做衰减，避免滚动、截图等单次尖峰造成误判
+        longFrameStreak = Math.max(0, longFrameStreak - 1)
+      }
+    }
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        window.cancelAnimationFrame(raf)
+        raf = 0
+      } else if (!raf) {
+        lastTime = window.performance.now()
+        warmupFrames = 10
+        raf = window.requestAnimationFrame(sample)
+      }
+    }
+
+    raf = window.requestAnimationFrame(sample)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [enabled, onDegrade])
 }
 
 function usePerformanceTier() {
   // Start from the safest render path. Capability detection runs after
   // hydration, so an optimistic default can freeze fresh/anonymous browsers
   // before we have enough information to downgrade them.
+  const [degraded, setDegraded] = useState(() => {
+    try {
+      return sessionStorage.getItem(PERF_DEGRADE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const [qualityPref, setQualityPref] = useState(() => {
+    try {
+      return localStorage.getItem(QUALITY_PREF_KEY) === 'high' ? 'high' : 'auto'
+    } catch {
+      return 'auto'
+    }
+  })
   const [tier, setTier] = useState('minimal')
 
-  useEffect(() => {
+  // 静态能力检测收敛成纯函数，供挂载、resize、偏好切换时复用；
+  // 返回 minimal/balanced/enhanced 三档基础能力，不掺入用户偏好。
+  const detectBaseTier = useCallback(() => {
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
     const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
+    const connection = navigator.connection
+    const memory = Number(navigator.deviceMemory || 0)
+    const cores = Number(navigator.hardwareConcurrency || 0)
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const pixelBudget = window.innerWidth * window.innerHeight * dpr * dpr
 
-    const detectTier = () => {
-      const connection = navigator.connection
-      const memory = Number(navigator.deviceMemory || 0)
-      const cores = Number(navigator.hardwareConcurrency || 0)
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      const pixelBudget = window.innerWidth * window.innerHeight * dpr * dpr
+    if (
+      reducedMotionQuery.matches
+      || Boolean(connection?.saveData)
+      || coarsePointerQuery.matches
+      || (memory > 0 && memory <= 4)
+      || (cores > 0 && cores <= 4)
+      || pixelBudget > 7_000_000
+    ) return 'minimal'
 
-      if (
-        reducedMotionQuery.matches
-        || Boolean(connection?.saveData)
-        || coarsePointerQuery.matches
-        || (memory > 0 && memory <= 4)
-        || (cores > 0 && cores <= 4)
-        || pixelBudget > 7_000_000
-      ) {
-        setTier('minimal')
-        return
-      }
-
-      // Only opt into WebGL when the browser exposes enough positive evidence.
-      // Firefox, privacy modes and embedded browsers often hide deviceMemory;
-      // those clients keep the stable static treatment instead of gambling on
-      // a potentially weak or software-rendered GPU.
-      if (memory >= 8 && cores >= 8 && pixelBudget <= 4_500_000) {
-        setTier('enhanced')
-        return
-      }
-
-      setTier(memory >= 6 && cores >= 6 && pixelBudget <= 5_500_000 ? 'balanced' : 'minimal')
-    }
-
-    detectTier()
-    reducedMotionQuery.addEventListener?.('change', detectTier)
-    coarsePointerQuery.addEventListener?.('change', detectTier)
-    window.addEventListener('resize', detectTier, { passive: true })
-
-    return () => {
-      reducedMotionQuery.removeEventListener?.('change', detectTier)
-      coarsePointerQuery.removeEventListener?.('change', detectTier)
-      window.removeEventListener('resize', detectTier)
-    }
+    // Only opt into WebGL when the browser exposes enough positive evidence.
+    // Firefox, privacy modes and embedded browsers often hide deviceMemory;
+    // those clients keep the stable static treatment instead of gambling on
+    // a potentially weak or software-rendered GPU.
+    if (memory >= 8 && cores >= 8 && pixelBudget <= 4_500_000) return 'enhanced'
+    return memory >= 6 && cores >= 6 && pixelBudget <= 5_500_000 ? 'balanced' : 'minimal'
   }, [])
 
-  return tier
+  // 最终档位优先级：会话降级标记 > 系统 reduced-motion > 用户手动高画质 > 静态检测。
+  // 用户主动开启高画质只覆盖能力门槛，但永远不覆盖系统动效偏好与降级标记。
+  const resolveTier = useCallback(() => {
+    if (degraded) return 'minimal'
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'minimal'
+    if (qualityPref === 'high') return 'enhanced'
+    return detectBaseTier()
+  }, [degraded, qualityPref, detectBaseTier])
+
+  useEffect(() => {
+    setTier(resolveTier())
+
+    // 窗口或系统偏好变化时重新评估（例如拔掉外接显示器导致 pixelBudget 变化）
+    const onReevaluate = () => setTier(resolveTier())
+    window.addEventListener('resize', onReevaluate, { passive: true })
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
+    reducedMotionQuery.addEventListener?.('change', onReevaluate)
+    coarsePointerQuery.addEventListener?.('change', onReevaluate)
+
+    return () => {
+      window.removeEventListener('resize', onReevaluate)
+      reducedMotionQuery.removeEventListener?.('change', onReevaluate)
+      coarsePointerQuery.removeEventListener?.('change', onReevaluate)
+    }
+  }, [resolveTier])
+
+  // 运行时兜底：enhanced/balanced 实际跑不动时自动降级回 minimal，
+  // 结果写入 sessionStorage，本次会话内刷新页面也保持稳定模式。
+  const handleRuntimeDegrade = useCallback(() => {
+    setDegraded(true)
+    try {
+      sessionStorage.setItem(PERF_DEGRADE_KEY, '1')
+    } catch {
+      // 隐私模式下写入失败不阻塞降级
+    }
+    setTier('minimal')
+  }, [])
+
+  useRuntimePerfMonitor(tier !== 'minimal' && !degraded, handleRuntimeDegrade)
+
+  const toggleQuality = useCallback(() => {
+    setQualityPref((pref) => {
+      const next = pref === 'high' ? 'auto' : 'high'
+      try {
+        if (next === 'high') localStorage.setItem(QUALITY_PREF_KEY, 'high')
+        else localStorage.removeItem(QUALITY_PREF_KEY)
+      } catch {
+        // 忽略存储失败，偏好仅本次生效
+      }
+      return next
+    })
+    // 用户主动重新开启高画质时，重置本次会话的降级标记，
+    // 避免"一次掉帧永久降级"——用户承担了重开的成本。
+    if (qualityPref !== 'high') {
+      setDegraded(false)
+      try {
+        sessionStorage.removeItem(PERF_DEGRADE_KEY)
+      } catch {
+        // 忽略
+      }
+    }
+  }, [qualityPref])
+
+  return { tier, qualityPref, toggleQuality }
 }
 
 function LayerBrand({ tone = 'dark' }) {
@@ -1487,7 +1604,7 @@ function LayerBrand({ tone = 'dark' }) {
   )
 }
 
-function WelcomeLayer({ onEnter, performanceTier }) {
+function WelcomeLayer({ onEnter, performanceTier, qualityPref, onToggleQuality }) {
   const rootRef = useRef(null)
   const [visualMode, setVisualMode] = useState('pending')
   const introSteps = useMemo(() => [
@@ -1501,7 +1618,8 @@ function WelcomeLayer({ onEnter, performanceTier }) {
     { target: '.welcome-directory-item', from: { x: 28, opacity: 0 }, at: 0.58, duration: 0.7, stagger: 0.1 },
     { target: '.welcome-explore-cue', from: { y: 14, opacity: 0 }, at: 0.9, duration: 0.62 },
   ], [])
-  useLayerIntro(rootRef, introSteps)
+  // minimal 档跳过 GSAP 入场动画，稳定模式打开页面即完整呈现
+  useLayerIntro(rootRef, introSteps, performanceTier === 'minimal')
 
   useEffect(() => {
     if (performanceTier !== 'enhanced') {
@@ -1617,6 +1735,21 @@ function WelcomeLayer({ onEnter, performanceTier }) {
         <b><span>点击进入 · 开始探索</span><small>CLICK TO ENTER · START EXPLORING</small></b>
         <ArrowDown size={17} strokeWidth={1.45} />
       </button>
+      <button
+        type="button"
+        className={`welcome-quality-toggle ${qualityPref === 'high' ? 'is-high' : ''}`}
+        onClick={onToggleQuality}
+        aria-pressed={qualityPref === 'high'}
+        aria-label={qualityPref === 'high' ? '切换为稳定模式' : '开启高画质动效'}
+        title={qualityPref === 'high' ? '高画质动效已开启，点击切回稳定模式' : '开启 WebGL 高画质动效（较旧的设备可能卡顿，可随时切回）'}
+      >
+        <i aria-hidden="true" />
+        <span>
+          <b>{qualityPref === 'high' ? 'HIGH MOTION' : 'STABLE MODE'}</b>
+          <small>{qualityPref === 'high' ? '高画质动效' : '稳定模式 · 点击开启'}</small>
+        </span>
+        <Zap size={14} strokeWidth={1.6} />
+      </button>
     </section>
   )
 }
@@ -1630,7 +1763,8 @@ function DirectoryLayer({ onBack, onSelect, performanceTier }) {
     { target: '.directory-manifesto', from: { y: 32, opacity: 0, scale: 0.97 }, at: 0.62, duration: 0.8 },
     { target: '.directory-hint', from: { opacity: 0 }, at: 0.82, duration: 0.6 },
   ], [])
-  useLayerIntro(rootRef, introSteps)
+  // minimal 档跳过入场动画，目录即时呈现
+  useLayerIntro(rootRef, introSteps, performanceTier === 'minimal')
 
   return (
     <section className="directory-layer" aria-labelledby="directory-title" ref={rootRef}>
@@ -1712,7 +1846,8 @@ function ContentLayer({
   const introSteps = useMemo(() => [
     { target: '.content-layer-header', from: { y: -24, opacity: 0, filter: 'blur(8px)' }, at: 0.05, duration: 0.78 },
   ], [])
-  useLayerIntro(rootRef, introSteps)
+  // minimal 档跳过入场动画，内容页即时呈现
+  useLayerIntro(rootRef, introSteps, performanceTier === 'minimal')
 
   useLayoutEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'instant' })
@@ -1789,7 +1924,7 @@ function LayeredApp() {
   const [selectedProject, setSelectedProject] = useState(null)
   const transitionRef = useRef(null)
   const transitionLockRef = useRef(false)
-  const performanceTier = usePerformanceTier()
+  const { tier: performanceTier, qualityPref, toggleQuality } = usePerformanceTier()
 
   const focusLayer = (nextView, panelId) => {
     window.requestAnimationFrame(() => {
@@ -1813,7 +1948,9 @@ function LayeredApp() {
 
     const overlay = transitionRef.current
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!overlay || reduceMotion) {
+    // 低性能模式必须即时完成切换：minimal 档不播放任何 GSAP 遮罩过渡，
+    // 让内容立刻呈现，避免页面切换被高负载动画拖住。
+    if (!overlay || reduceMotion || performanceTier === 'minimal') {
       if (item) setActivePanel(item.id)
       if (item || nextView !== 'content') setActiveContactId(null)
       setView(nextView)
@@ -1906,7 +2043,14 @@ function LayeredApp() {
             />
           </Suspense>
         ) : null}
-        {view === 'welcome' && <WelcomeLayer onEnter={() => transitionTo('directory')} performanceTier={performanceTier} />}
+        {view === 'welcome' && (
+          <WelcomeLayer
+            onEnter={() => transitionTo('directory')}
+            performanceTier={performanceTier}
+            qualityPref={qualityPref}
+            onToggleQuality={toggleQuality}
+          />
+        )}
         {view === 'directory' && (
           <DirectoryLayer
             onBack={() => transitionTo('welcome')}
