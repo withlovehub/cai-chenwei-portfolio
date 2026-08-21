@@ -12,6 +12,7 @@ function FlowingMenu({
   marqueeBgColor = '#fff',
   marqueeTextColor = '#120f17',
   borderColor = '#fff',
+  staticMotion = false,
 }) {
   return (
     <div className="flowing-menu" style={{ backgroundColor: bgColor }}>
@@ -25,6 +26,7 @@ function FlowingMenu({
             marqueeBgColor={marqueeBgColor}
             marqueeTextColor={marqueeTextColor}
             borderColor={borderColor}
+            staticMotion={staticMotion}
           />
         ))}
       </nav>
@@ -32,7 +34,7 @@ function FlowingMenu({
   )
 }
 
-function FlowingMenuItem({ link, text, image, speed, textColor, marqueeBgColor, marqueeTextColor, borderColor }) {
+function FlowingMenuItem({ link, text, image, speed, textColor, marqueeBgColor, marqueeTextColor, borderColor, staticMotion = false }) {
   const itemRef = useRef(null)
   const marqueeRef = useRef(null)
   const marqueeInnerRef = useRef(null)
@@ -65,7 +67,9 @@ function FlowingMenuItem({ link, text, image, speed, textColor, marqueeBgColor, 
       if (!inner || !content || content.offsetWidth === 0) return
 
       animationRef.current?.kill()
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // 低性能模式（staticMotion）下不启动无限 marquee，保留静态列表；
+      // 与 prefers-reduced-motion 走同一条静态路径，避免持续 GSAP RAF。
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || staticMotion) {
         gsap.set(inner, { x: 0 })
         return
       }
@@ -83,7 +87,7 @@ function FlowingMenuItem({ link, text, image, speed, textColor, marqueeBgColor, 
       window.clearTimeout(timer)
       animationRef.current?.kill()
     }
-  }, [text, image, repetitions, speed])
+  }, [text, image, repetitions, speed, staticMotion])
 
   useEffect(
     () => () => {

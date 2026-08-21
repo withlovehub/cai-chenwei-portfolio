@@ -7989,6 +7989,27 @@ body.layered-app-active {
   filter: none;
 }
 
+/* ShinyText sweeps animate background-position on a background-clip:text
+   layer — every frame repaints the glyphs, the most expensive persistent
+   animation on this site. Turn the sheen off outside the enhanced tier. */
+.layered-portfolio[data-performance-tier='minimal'] .rb-shiny-text__shine,
+.layered-portfolio[data-performance-tier='balanced'] .rb-shiny-text__shine {
+  display: none;
+}
+
+/* The rotating stamp is a cheap transform loop, but it stays composited
+   forever; freeze it in stable mode to keep the raster pipeline quiet. */
+.layered-portfolio[data-performance-tier='minimal'] .rotating-stamp span {
+  animation: none;
+}
+
+.layered-portfolio[data-performance-tier='minimal'] .welcome-motion-reticle span,
+.layered-portfolio[data-performance-tier='minimal'] .availability-dot,
+.layered-portfolio[data-performance-tier='minimal'] .dock-status i,
+.layered-portfolio[data-performance-tier='minimal'] .contact-channel-meta i {
+  animation: none;
+}
+
 .layered-portfolio[data-performance-tier='minimal']::after {
   display: none;
 }
@@ -8002,4 +8023,36 @@ body.layered-app-active {
 
 .layered-portfolio[data-performance-tier='balanced'] .rb-crosshair {
   display: none;
+}
+
+/* Balanced is the public default: one composited transform per ambient layer
+   restores a living interface without the full-screen shader cost. */
+.layered-portfolio[data-performance-tier='balanced'] .welcome-kinetic-fallback {
+  animation: balanced-welcome-breathe 12s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.layered-portfolio[data-performance-tier='balanced'] .directory-chrome-fallback {
+  animation: balanced-directory-drift 16s ease-in-out infinite alternate;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes balanced-welcome-breathe {
+  0%, 100% { opacity: 0.72; transform: scale(0.985); }
+  50% { opacity: 1; transform: scale(1.035); }
+}
+
+@keyframes balanced-directory-drift {
+  from { transform: scale(1.025) translate3d(-0.6%, -0.4%, 0); }
+  to { transform: scale(1.055) translate3d(0.8%, 0.6%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layered-portfolio .welcome-kinetic-fallback,
+  .layered-portfolio .directory-chrome-fallback {
+    animation: none;
+    will-change: auto;
+  }
 }
