@@ -286,7 +286,7 @@ export default function ContactHub({ activeChannelId, onSelectChannel, onBackCha
             ariaLabel="四种联系方式的球形切换菜单"
             className="contact-infinite-menu"
             scale={0.92}
-            forceFallback={performanceTier === 'minimal'}
+            forceFallback={performanceTier !== 'enhanced'}
             maxDpr={performanceTier === 'enhanced' ? 1.35 : 1.1}
           />
 

@@ -22,6 +22,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { experiences, githubRepositories, metrics, profile, projects, strengths } from './data'
+import { siteAsset } from './siteAsset'
 import BlurText from './components/BlurText/BlurText'
 import ClickSpark from './components/ClickSpark/ClickSpark'
 import DecryptedText from './components/DecryptedText/DecryptedText'
@@ -40,35 +41,35 @@ const portfolioDirectory = [
     title: '关于我',
     code: '01',
     description: '身份、方向、个人理念与现在正在建立的能力系统。',
-    image: '/assets/directory-about-v2.webp',
+    image: siteAsset('/assets/directory-about-v2.webp'),
   },
   {
     id: 'experience',
     title: '个人经历',
     code: '02',
     description: '从校园组织、电子技术实践到教育工作，一段有迹可循的成长路径。',
-    image: '/assets/directory-experience-v2.webp',
+    image: siteAsset('/assets/directory-experience-v2.webp'),
   },
   {
     id: 'projects',
     title: '项目作品',
     code: '03',
     description: '项目实践、GitHub 开源作品，以及想法如何真正变成可以运行的结果。',
-    image: '/assets/directory-projects-v2.webp',
+    image: siteAsset('/assets/directory-projects-v2.webp'),
   },
   {
     id: 'strengths',
     title: '能力系统',
     code: '04',
     description: 'AI Agent、编程基础、数据跟进与协作能力组成的个人工作方式。',
-    image: '/assets/directory-strengths-v2.webp',
+    image: siteAsset('/assets/directory-strengths-v2.webp'),
   },
   {
     id: 'contact',
     title: '与我联系',
     code: '05',
     description: '如果你对我的经历或作品感兴趣，可以从这里找到我。',
-    image: '/assets/directory-contact-v2.webp',
+    image: siteAsset('/assets/directory-contact-v2.webp'),
   },
 ]
 
@@ -358,9 +359,9 @@ function Hero() {
           loop
           playsInline
           preload="metadata"
-          poster="/assets/open-source-lab-v2.jpg"
+          poster={siteAsset('/assets/open-source-lab-v2.jpg')}
         >
-          <source src="/assets/ccw-motion-study.mp4" type="video/mp4" />
+          <source src={siteAsset('/assets/ccw-motion-study.mp4')} type="video/mp4" />
         </video>
       </div>
       <div className="hero-grid" aria-hidden="true" />
@@ -548,7 +549,7 @@ function MotionLab() {
       <div className="motion-lab-shell" data-active={scene.key}>
         <div className="motion-lab-film" aria-hidden="true">
           <video ref={filmRef} autoPlay muted loop playsInline preload="metadata">
-            <source src="/assets/ccw-motion-study.mp4" type="video/mp4" />
+            <source src={siteAsset('/assets/ccw-motion-study.mp4')} type="video/mp4" />
           </video>
         </div>
         <div className="motion-lab-wash" aria-hidden="true" />
@@ -600,7 +601,7 @@ function About() {
   const portrait = (
     <figure className="portrait-card">
       <img
-        src="/assets/avatar-cai.jpg"
+        src={siteAsset('/assets/avatar-cai.jpg')}
         alt="蔡辰玮的个人头像"
         loading="lazy"
         decoding="async"
@@ -876,7 +877,7 @@ function GitHubShowcase() {
   )
 }
 
-function Projects({ onInspect }) {
+function Projects({ onInspect, performanceTier }) {
   const flowingItems = projects.map((project) => ({
     link: `#project-${project.index}`,
     text: `${project.index} / ${project.title}`,
@@ -907,6 +908,7 @@ function Projects({ onInspect }) {
               marqueeBgColor="#67e7ff"
               marqueeTextColor="#080b0d"
               borderColor="rgba(255,255,255,0.2)"
+              staticMotion={performanceTier === 'minimal'}
             />
           </Suspense>
         </div>
@@ -1426,8 +1428,16 @@ function useRuntimePerfMonitor(enabled, onDegrade) {
 
     let raf = 0
     let lastTime = window.performance.now()
-    let longFrameStreak = 0
-    let warmupFrames = 30 // 首屏与 WebGL shader 编译期存在正常长帧尖峰，先跳过前 30 帧再判定
+    let sampledFrames = 0
+    let slowFrames = 0
+    let sampledDuration = 0
+    let warmupFrames = 45 // 给首屏与 WebGL shader 编译留出热身窗口，避免把初始化尖峰当成持续卡顿
+
+    const resetWindow = () => {
+      sampledFrames = 0
+      slowFrames = 0
+      sampledDuration = 0
+    }
 
     const sample = (now) => {
       raf = window.requestAnimationFrame(sample)
@@ -1437,18 +1447,25 @@ function useRuntimePerfMonitor(enabled, onDegrade) {
         return
       }
 
-      const delta = now - lastTime
+      const delta = Math.min(now - lastTime, 250)
       lastTime = now
-      if (delta > 66) { // 单帧超过 66ms ≈ 持续低于 15fps，属于真实卡顿
-        longFrameStreak += 1
-        if (longFrameStreak >= 5) {
+
+      sampledFrames += 1
+      sampledDuration += delta
+      if (delta > 32) slowFrames += 1
+
+      // 用一段完整采样窗口判断，而不是要求坏帧连续出现；弱显卡常见的
+      // 20ms/45ms 交替抖动也能被识别，同时不会被一次滚轮或截图误伤。
+      if (sampledFrames >= 90) {
+        const averageFrameTime = sampledDuration / sampledFrames
+        const slowFrameRatio = slowFrames / sampledFrames
+        if (averageFrameTime > 24 || slowFrameRatio > 0.28) {
           window.cancelAnimationFrame(raf)
           raf = 0
           onDegrade()
+          return
         }
-      } else {
-        // 一帧正常就对连续计数做衰减，避免滚动、截图等单次尖峰造成误判
-        longFrameStreak = Math.max(0, longFrameStreak - 1)
+        resetWindow()
       }
     }
 
@@ -1458,7 +1475,8 @@ function useRuntimePerfMonitor(enabled, onDegrade) {
         raf = 0
       } else if (!raf) {
         lastTime = window.performance.now()
-        warmupFrames = 10
+        warmupFrames = 20
+        resetWindow()
         raf = window.requestAnimationFrame(sample)
       }
     }
@@ -1490,60 +1508,30 @@ function usePerformanceTier() {
       return 'auto'
     }
   })
-  const [tier, setTier] = useState('minimal')
+  const [tier, setTier] = useState('balanced')
 
-  // 静态能力检测收敛成纯函数，供挂载、resize、偏好切换时复用；
-  // 返回 minimal/balanced/enhanced 三档基础能力，不掺入用户偏好。
-  const detectBaseTier = useCallback(() => {
-    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
-    const connection = navigator.connection
-    const memory = Number(navigator.deviceMemory || 0)
-    const cores = Number(navigator.hardwareConcurrency || 0)
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    const pixelBudget = window.innerWidth * window.innerHeight * dpr * dpr
-
-    if (
-      reducedMotionQuery.matches
-      || Boolean(connection?.saveData)
-      || coarsePointerQuery.matches
-      || (memory > 0 && memory <= 4)
-      || (cores > 0 && cores <= 4)
-      || pixelBudget > 7_000_000
-    ) return 'minimal'
-
-    // Only opt into WebGL when the browser exposes enough positive evidence.
-    // Firefox, privacy modes and embedded browsers often hide deviceMemory;
-    // those clients keep the stable static treatment instead of gambling on
-    // a potentially weak or software-rendered GPU.
-    if (memory >= 8 && cores >= 8 && pixelBudget <= 4_500_000) return 'enhanced'
-    return memory >= 6 && cores >= 6 && pixelBudget <= 5_500_000 ? 'balanced' : 'minimal'
-  }, [])
-
-  // 最终档位优先级：会话降级标记 > 系统 reduced-motion > 用户手动高画质 > 静态检测。
-  // 用户主动开启高画质只覆盖能力门槛，但永远不覆盖系统动效偏好与降级标记。
+  // 自动硬件识别无法判断浏览器是否正在使用独显、核显或软件 WebGL，
+  // 同一台机器在不同浏览器里也可能走完全不同的图形管线。因此公开访问
+  // 默认固定为平衡档：保留 GSAP 入场、页面切换和按需交互动画，但不创建
+  // WebGL 上下文。只有访客明确点击高画质按钮才开启 Three.js/WebGL。
   const resolveTier = useCallback(() => {
     if (degraded) return 'minimal'
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 'minimal'
     if (qualityPref === 'high') return 'enhanced'
-    return detectBaseTier()
-  }, [degraded, qualityPref, detectBaseTier])
+    return 'balanced'
+  }, [degraded, qualityPref])
 
   useEffect(() => {
     setTier(resolveTier())
 
-    // 窗口或系统偏好变化时重新评估（例如拔掉外接显示器导致 pixelBudget 变化）
+    // 系统动效偏好变化时立即重新评估；稳定档不再因 resize 或 DPR 变化
+    // 自动升级，避免拖动窗口到高分屏时突然创建 WebGL 上下文。
     const onReevaluate = () => setTier(resolveTier())
-    window.addEventListener('resize', onReevaluate, { passive: true })
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
     reducedMotionQuery.addEventListener?.('change', onReevaluate)
-    coarsePointerQuery.addEventListener?.('change', onReevaluate)
 
     return () => {
-      window.removeEventListener('resize', onReevaluate)
       reducedMotionQuery.removeEventListener?.('change', onReevaluate)
-      coarsePointerQuery.removeEventListener?.('change', onReevaluate)
     }
   }, [resolveTier])
 
@@ -1769,7 +1757,7 @@ function DirectoryLayer({ onBack, onSelect, performanceTier }) {
   return (
     <section className="directory-layer" aria-labelledby="directory-title" ref={rootRef}>
       <div className="directory-chrome" aria-hidden="true">
-        {performanceTier === 'minimal' ? (
+        {performanceTier !== 'enhanced' ? (
           <div className="directory-chrome-fallback" />
         ) : (
           <Suspense fallback={<div className="directory-chrome-fallback" />}>
@@ -1805,25 +1793,27 @@ function DirectoryLayer({ onBack, onSelect, performanceTier }) {
       </div>
 
       <div className="directory-manifesto">
-        <Suspense fallback={<h2>从你感兴趣的地方开始。</h2>}>
-          <MaskedHeading
-            text="从你感兴趣的地方开始。"
-            src="/assets/directory-projects-v2.webp"
-            fillScale={1.38}
-            parallax={18}
-            drift={8}
-            brightness={1.06}
-            saturation={0.9}
-            reveal="wipe"
-            duration={1.25}
-            trigger="mount"
-            align="left"
-            weight={700}
-            tracking={-0.055}
-            lineHeight={0.96}
-            textScale={0.064}
-          />
-        </Suspense>
+        {performanceTier === 'enhanced' ? (
+          <Suspense fallback={<h2>从你感兴趣的地方开始。</h2>}>
+            <MaskedHeading
+              text="从你感兴趣的地方开始。"
+              src={siteAsset('/assets/directory-projects-v2.webp')}
+              fillScale={1.38}
+              parallax={18}
+              drift={8}
+              brightness={1.06}
+              saturation={0.9}
+              reveal="wipe"
+              duration={1.25}
+              trigger="mount"
+              align="left"
+              weight={700}
+              tracking={-0.055}
+              lineHeight={0.96}
+              textScale={0.064}
+            />
+          </Suspense>
+        ) : <h2>从你感兴趣的地方开始。</h2>}
         <p><span>READ IN YOUR OWN ORDER</span>无需按顺序阅读，选择此刻最想了解的一面。</p>
       </div>
       <p className="directory-hint">上下拖动或滚动目录，点击中央卡片进入</p>
@@ -1856,7 +1846,8 @@ function ContentLayer({
     if (!root || !scroller) return undefined
 
     scroller.querySelectorAll('.section-reveal').forEach((element) => element.classList.add('is-visible'))
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    // 低性能模式跳过 blur 入场动画：filter 动画会触发逐帧重绘，是弱机卡顿主源
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || performanceTier === 'minimal') return undefined
 
     const context = gsap.context(() => {
       const targets = scroller.querySelectorAll(
@@ -1902,7 +1893,7 @@ function ContentLayer({
       <div className="content-layer-scroll" ref={scrollRef}>
         {activePanel === 'about' && <About />}
         {activePanel === 'experience' && <Experience />}
-        {activePanel === 'projects' && <Projects onInspect={onInspect} />}
+        {activePanel === 'projects' && <Projects onInspect={onInspect} performanceTier={performanceTier} />}
         {activePanel === 'strengths' && <Strengths />}
         {activePanel === 'contact' && (
           <Contact
@@ -1959,9 +1950,15 @@ function LayeredApp() {
     }
 
     transitionLockRef.current = true
+    // 兜底解锁：万一 GSAP onComplete 因任何意外没触发，导航会被永久锁死，
+    // 超过总动画时长约 2.5 倍后强制解锁，保证切换永远可用。
+    const unlockTimer = window.setTimeout(() => {
+      transitionLockRef.current = false
+    }, 2500)
     gsap.timeline({
       defaults: { ease: 'power4.inOut' },
       onComplete: () => {
+        window.clearTimeout(unlockTimer)
         transitionLockRef.current = false
         focusLayer(nextView, item?.id)
       },
